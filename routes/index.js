@@ -8,7 +8,12 @@ const AppTokenController = require('../package/controllers/appToken.js');
 
 router.get('/', async (ctx, next) => {
   await ctx.render('index', {
-    title: 'Hello Koa2!'
+    title: '积分商城'
+  })
+})
+router.get('/user', async (ctx, next) => {
+  await ctx.render('user', {
+    title: '用户中心'
   })
 })
 

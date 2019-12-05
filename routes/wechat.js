@@ -3,8 +3,6 @@ const wechat = require('co-wechat');
 const wechatConfig = require('../config/wechat.js');
 const WechatAPI = require('co-wechat-api');
 const wechatApi = new WechatAPI(wechatConfig.appid, wechatConfig.appsecret);
-//引入消息模板
-const { signInTemp } = require('../utils/wechat_template.js');
 
 //appUserController
 const AppUserController = require('../package/controllers/appUser.js');
@@ -17,7 +15,7 @@ router.all('/wechat', wechat(wechatConfig).middleware(
         let replay = '';
         switch(message.MsgType) {
             case 'event':
-                replay = '收到事件消息';
+                replay = await messageToEvent(message);
                 break;
             case 'text': 
                 replay = await messageToText(message);
@@ -58,47 +56,57 @@ const messageToText = async (message = {}) => {
         case '签到': 
             //执行签到
             let signRet = await AppUserController.appUserSignIn(FromUserName, ToUserName)
-            var data = {};
+            let signMsg = '', signIntegral = 0, description = '';
             if(signRet.status === 200) {
-                let { newIntegral, user } = signRet.data;
-                data.msg = {
-                    "value":  signRet.msg,
-                    "color": '#173177'
-                }
-                data.first = {
-                    "value": newIntegral,
-                    "color": '#173177'
-                }
-                data.second = {
-                    "value": user.integral,
-                    "color": '#173177'
+                let { newIntegral, isNew } = signRet.data;
+                signIntegral = newIntegral;
+                signMsg = signRet.msg;
+                description = "获得积分：" + signIntegral;
+                if(isNew) {
+                    description = description + "\t\n" + "新人首次签到 +1000";
                 }
             } else {
-                data.msg = {
-                    "value":  signRet.msg,
-                    "color": '#173177'
-                }
-                data.first = {
-                    "value": "未知",
-                    "color": '#173177'
-                }
-                data.second = {
-                    "value": "未知",
-                    "color": '#173177'
-                }
+                signMsg = signRet.msg;
+                description = "请明天再来吧，积分可以用来兑换礼品~~"
             }
-            //引入签到模板参数
-            let { templateId, url, topColor } = signInTemp;
-            // var data = {
-            //     "msg": '',
-            // };
-            wechatApi.sendTemplate(FromUserName, templateId, url, topColor, data);
+            //回复图文
+            replay = [{
+                "title": signMsg,
+                "description": description,
+                "url": "http://subapp.free.idcfengye.com/user",
+                "picurl": "http://subapp.free.idcfengye.com/images/member.png"
+            }];
+            break;
+        case '积分商城': 
+            //回复图文
+            replay = [{
+                "title": "积分商城",
+                "description": "每天坚持签到，兑换更好的礼品~~",
+                "url": "http://subapp.free.idcfengye.com/",
+                "picurl": "http://subapp.free.idcfengye.com/images/store.png"
+            }];
             break;
         //其他操作
         default: 
-            replay = '回复"签到"试试~~'
+            replay = '系统维护中~ 请明早再来~~'
     }
     return replay;
+}
+
+//事件消息分发
+const messageToEvent = async (message = {}) => {
+    let replay = '收到事件消息';
+
+    //判断
+    switch(message.Event) {
+        case 'CLICK':
+            replay = replay + message.EventKey;
+            break;
+        default:
+            replay = replay + '其他事件' + message.EventKey;
+            break;
+    }
+    return replay
 }
 
 

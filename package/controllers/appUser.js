@@ -107,7 +107,7 @@ class AppUserController {
             // //判断该用户今天是否签到过
             if(new Date().toDateString() === new Date(signTime).toDateString()) {
                 return {
-                    status: 200,
+                    status: 201,
                     msg: '你今天已经签到过了！',
                     data: {
                         newIntegral: 0,
